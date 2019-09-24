@@ -4,6 +4,7 @@ package serial
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"sync"
 	"syscall"
@@ -263,18 +264,17 @@ func (p *impl) setCommState(baud int, databits byte, parity Parity, stopbits Sto
 
 func (p *impl) setCommTimeouts(readTimeout time.Duration) error {
 	var timeouts structTimeouts
-	const MAXDWORD = 1<<32 - 1
 
 	// blocking read by default
-	var timeoutMs int64 = MAXDWORD - 1
+	var timeoutMs int64 = math.MaxUint32 - 1
 
 	if readTimeout > 0 {
 		// non-blocking read
 		timeoutMs = readTimeout.Nanoseconds() / 1e6
 		if timeoutMs < 1 {
 			timeoutMs = 1
-		} else if timeoutMs > MAXDWORD-1 {
-			timeoutMs = MAXDWORD - 1
+		} else if timeoutMs > math.MaxUint32-1 {
+			timeoutMs = math.MaxUint32 - 1
 		}
 	}
 
@@ -300,8 +300,8 @@ func (p *impl) setCommTimeouts(readTimeout time.Duration) error {
 		       ReadTotalTimeoutConstant, ReadFile times out.
 	*/
 
-	timeouts.ReadIntervalTimeout = MAXDWORD
-	timeouts.ReadTotalTimeoutMultiplier = MAXDWORD
+	timeouts.ReadIntervalTimeout = math.MaxUint32
+	timeouts.ReadTotalTimeoutMultiplier = math.MaxUint32
 	timeouts.ReadTotalTimeoutConstant = uint32(timeoutMs)
 
 	r, _, err := syscall.Syscall(nSetCommTimeouts, 2, uintptr(p.fd), uintptr(unsafe.Pointer(&timeouts)), 0)
